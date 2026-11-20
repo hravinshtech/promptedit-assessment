@@ -15,7 +15,8 @@ class WebhookSignatureValidator
      */
     public function validate(string $rawPayload, ?string $signatureHeader, ?string $secret = null): bool
     {
-        $secret = $secret ?? (string) config('services.pixelforge.webhook_secret', '');
+        $rawSecret = $secret ?: (config('services.pixelforge.webhook_secret') ?: getenv('PIXELFORGE_WEBHOOK_SECRET') ?: ($_ENV['PIXELFORGE_WEBHOOK_SECRET'] ?? ''));
+        $secret = trim((string) $rawSecret, " \t\n\r\0\x0B\"'");
 
         if (empty($secret)) {
             throw new PixelforgeException('Webhook secret is not configured.', 'missing_webhook_secret', 500);

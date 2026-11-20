@@ -17,8 +17,11 @@ class PixelforgeClient
 
     public function __construct(?string $apiKey = null, ?string $baseUrl = null)
     {
-        $this->apiKey = $apiKey ?? (string) config('services.pixelforge.api_key', '');
-        $this->baseUrl = rtrim($baseUrl ?? (string) config('services.pixelforge.base_url', 'https://pixelforge.promptedit.dev/v1'), '/');
+        $rawKey = $apiKey ?: (config('services.pixelforge.api_key') ?: getenv('PIXELFORGE_API_KEY') ?: ($_ENV['PIXELFORGE_API_KEY'] ?? ''));
+        $this->apiKey = trim((string) $rawKey, " \t\n\r\0\x0B\"'");
+
+        $rawUrl = $baseUrl ?: (config('services.pixelforge.base_url') ?: getenv('PIXELFORGE_BASE_URL') ?: 'https://pixelforge.promptedit.dev/v1');
+        $this->baseUrl = rtrim(trim((string) $rawUrl, " \t\n\r\0\x0B\"'"), '/');
     }
 
     /**
