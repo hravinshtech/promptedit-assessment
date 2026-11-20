@@ -1,18 +1,6 @@
-# Multi-stage build for PromptEdit Pixelforge Assessment
-
-# Stage 1: Build Frontend Assets
-FROM node:20-alpine AS frontend
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY resources resources
-COPY vite.config.js tailwind.config.js postcss.config.js jsconfig.json ./
-RUN npm run build
-
-# Stage 2: Production PHP Web Server
 FROM php:8.3-cli-alpine
 
-# Install system dependencies & PHP extensions (bcmath, pdo_sqlite)
+# Install system dependencies, PHP extensions, Node.js and npm
 RUN apk add --no-cache \
     curl \
     git \
@@ -22,6 +10,8 @@ RUN apk add --no-cache \
     libpng-dev \
     libzip-dev \
     icu-dev \
+    nodejs \
+    npm \
     && docker-php-ext-install bcmath pdo_sqlite intl opcache
 
 # Install Composer
@@ -29,17 +19,17 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy application source
+# Copy source code
 COPY . .
 
-# Copy compiled frontend assets from Stage 1
-COPY --from=frontend /app/public/build public/build
-
-# Install production PHP dependencies
+# 1. Install PHP dependencies (creates vendor/tightenco/ziggy needed by Vite)
 ENV COMPOSER_ALLOW_SUPERUSER=1
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --optimize-autoloader --no-interaction
 
-# Set up storage and cache permissions
+# 2. Install Node dependencies and compile frontend assets
+RUN npm ci && npm run build && rm -rf node_modules
+
+# 3. Setup directories and permissions
 RUN mkdir -p storage/framework/sessions \
     storage/framework/views \
     storage/framework/cache \
@@ -47,7 +37,7 @@ RUN mkdir -p storage/framework/sessions \
     bootstrap/cache \
     && chmod -R 777 storage bootstrap/cache database
 
-# Entrypoint script: ensure database exists, migrate, seed, and serve
+# Entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
