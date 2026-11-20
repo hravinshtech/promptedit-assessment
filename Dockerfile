@@ -1,4 +1,4 @@
-FROM php:8.3-cli-alpine
+FROM php:8.4-cli-alpine
 
 # Install system dependencies, PHP extensions, Node.js and npm
 RUN apk add --no-cache \
@@ -12,6 +12,7 @@ RUN apk add --no-cache \
     icu-dev \
     nodejs \
     npm \
+    linux-headers \
     && docker-php-ext-install bcmath pdo_sqlite intl opcache
 
 # Install Composer
@@ -24,7 +25,7 @@ COPY . .
 
 # 1. Install PHP dependencies (creates vendor/tightenco/ziggy needed by Vite)
 ENV COMPOSER_ALLOW_SUPERUSER=1
-RUN composer install --optimize-autoloader --no-interaction
+RUN composer install --ignore-platform-reqs --optimize-autoloader --no-interaction
 
 # 2. Install Node dependencies and compile frontend assets
 RUN npm ci && npm run build && rm -rf node_modules
